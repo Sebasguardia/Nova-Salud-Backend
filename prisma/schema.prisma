@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────
+// USUARIOS Y PERMISOS
+// ─────────────────────────────────────────
+
+model User {
+  id                 String           @id @default(uuid())
+  firstName          String
+  lastName           String
+  email              String           @unique
+  dni                String           @unique
+  phone              String?
+  position           String
+  passwordHash       String
+  role               Role             @default(USER)
+  mustChangePassword Boolean          @default(true)
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  lastLogin          DateTime?
+
+  permissions        UserPermission[]
+  sales              Sale[]
+  auditLogs          AuditLog[]
+}
+
+model UserPermission {
+  id        String  @id @default(uuid())
+  userId    String
+  module    String
+  canAccess Boolean @default(false)
+  canCreate Boolean @default(false)
+  canEdit   Boolean @default(false)
+  canDelete Boolean @default(false)
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, module])
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+// ─────────────────────────────────────────
+// INVENTARIO
+// ─────────────────────────────────────────
+
+model Product {
+  id                 String     @id @default(uuid())
+  commercialName     String
+  genericName        String?
+  description        String?
+  category           String
+  pharmaceuticalForm String?
+  concentration      String?
+  presentation       String?
+  laboratory         String?
+  purchasePrice      Decimal    @db.Decimal(10, 2)
+  salePrice          Decimal    @db.Decimal(10, 2)
+  currentStock       Int        @default(0)
+  minimumStock       Int        @default(0)
+  expirationDate     DateTime?
+  lot                String?
+  sku                String     @unique
+  barcode            String?    @unique
+  physicalLocation   String?
+  taxApplicable      Boolean    @default(true)
+  saleUnit           String     @default("unidad")
+  imageUrl           String?
+  isActive           Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  saleItems          SaleItem[]
+}
+
+// ─────────────────────────────────────────
+// CLIENTES
+// ─────────────────────────────────────────
+
+model Client {
+  id                String   @id @default(uuid())
+  dni               String   @unique
+  name              String
+  phone             String?
+  email             String?
+  pointsBalance     Int      @default(0)
+  pointsAccumulated Int      @default(0)
+  pointsUsed        Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  sales             Sale[]
+}
+
+// ─────────────────────────────────────────
+// VENTAS
+// ─────────────────────────────────────────
+
+model Sale {
+  id             String     @id @default(uuid())
+  saleNumber     String     @unique
+  userId         String
+  clientId       String?
+  subtotal       Decimal    @db.Decimal(10, 2)
+  discountAmount Decimal    @db.Decimal(10, 2) @default(0)
+  taxAmount      Decimal    @db.Decimal(10, 2) @default(0)
+  total          Decimal    @db.Decimal(10, 2)
+  pointsEarned   Int        @default(0)
+  pointsUsed     Int        @default(0)
+  receiptPath    String?
+  notes          String?
+  createdAt      DateTime   @default(now())
+
+  user           User       @relation(fields: [userId],   references: [id])
+  client         Client?    @relation(fields: [clientId], references: [id])
+  items          SaleItem[]
+}
+
+model SaleItem {
+  id         String  @id @default(uuid())
+  saleId     String
+  productId  String
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  discount   Decimal @db.Decimal(10, 2) @default(0)
+  subtotal   Decimal @db.Decimal(10, 2)
+
+  sale       Sale    @relation(fields: [saleId],    references: [id], onDelete: Cascade)
+  product    Product @relation(fields: [productId], references: [id])
+}
+
+// ─────────────────────────────────────────
+// AUDITORÍA
+// ─────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String
+  module      String
+  action      String
+  entityId    String?
+  entityName  String?
+  description String
+  before      Json?
+  after       Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+// ─────────────────────────────────────────
+// CONFIGURACIÓN
+// ─────────────────────────────────────────
+
+model Settings {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model DiscountRule {
+  id        String       @id @default(uuid())
+  name      String       @unique
+  type      DiscountType
+  value     Decimal      @db.Decimal(5, 2)
+  condition String?
+  isActive  Boolean      @default(true)
+  priority  Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  BY_PRODUCT
+  BY_CATEGORY
+  BY_QUANTITY
+  BY_MINIMUM_AMOUNT
+  BY_LOYALTY_POINTS
+}
