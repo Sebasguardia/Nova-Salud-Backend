@@ -24,6 +24,7 @@ import { LoggerMiddleware } from './shared/middleware/logger.middleware';
 import { appConfig }       from './config/app.config';
 import { jwtConfig }       from './config/jwt.config';
 import { mailConfig }      from './config/mail.config';
+import { AppController }   from './app.controller';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { mailConfig }      from './config/mail.config';
     DashboardModule,
     ProfileModule,
   ],
+  controllers: [AppController],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

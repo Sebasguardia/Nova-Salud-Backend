@@ -10,6 +10,16 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  // Ruta en la raíz ('/') que ignora el prefijo global
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/', (req, res) => {
+    res.send({
+      success: true,
+      message: 'Salud Nova API Root. Por favor, dirígete a /api para ver la documentación o a los endpoints correspondientes.',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
     credentials: true,
