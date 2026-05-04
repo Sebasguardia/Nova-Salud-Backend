@@ -20,8 +20,13 @@ async function bootstrap() {
     });
   });
 
+  const allowedOrigins = process.env.ALLOWED_ORIGINS;
+  const originConfig = allowedOrigins === '*'
+    ? true
+    : allowedOrigins?.split(',') || ['http://localhost:5173'];
+
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
+    origin: originConfig,
     credentials: true,
   });
 
